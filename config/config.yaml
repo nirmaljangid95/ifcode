@@ -1,0 +1,53 @@
+llm:
+  provider: ollama  # ollama, openai, or custom
+  model: llama3.2:3b
+  base_url: http://localhost:11434
+  temperature: 0.1  # Low temperature for deterministic SQL
+  max_tokens: 2000
+  timeout: 60
+
+database:
+  timeout_seconds: 30
+  max_rows: 10000
+  read_only: true
+  sample_rows: 5  # Number of sample rows to fetch for inspection
+
+sql_generation:
+  max_tables_in_query: 5
+  allow_subqueries: true
+  allow_aggregations: true
+  blocked_keywords:
+    - DROP
+    - DELETE
+    - UPDATE
+    - INSERT
+    - ALTER
+    - CREATE
+    - TRUNCATE
+    - REPLACE
+    - GRANT
+    - REVOKE
+
+validation:
+  max_retry_attempts: 2
+  enable_result_verification: true
+  min_confidence_threshold: 0.7
+  check_for_nulls: true
+  check_for_duplicates: true
+  verify_date_ranges: true
+
+data_quality:
+  null_threshold: 0.5  # Warn if >50% nulls
+  duplicate_threshold: 0.3  # Warn if >30% duplicates
+  sample_size: 100  # Rows to sample for quality checks
+
+logging:
+  level: INFO
+  log_sql_queries: true
+  log_results: false  # Set to false to avoid logging sensitive data
+  log_file: logs/agent.log
+
+ui:
+  max_result_rows_display: 50
+  enable_visualizations: true
+  show_sql_in_answer: true

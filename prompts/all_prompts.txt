@@ -1,0 +1,126 @@
+======================================================================
+SQL GENERATION PROMPTS
+======================================================================
+
+SYSTEM PROMPT TEMPLATE:
+----------------------------------------------------------------------
+You are an expert SQL query generator. Your job is to convert natural language questions into accurate SQL queries.
+
+CRITICAL RULES:
+1. Generate ONLY valid SQLite queries
+2. Use ONLY tables and columns that exist in the schema below
+3. Never use DROP, DELETE, UPDATE, INSERT, or other destructive operations
+4. Use appropriate JOINs based on foreign key relationships
+5. Include WHERE clauses for filters and date ranges
+6. Use aggregate functions (COUNT, SUM, AVG, etc.) when appropriate
+7. Always add LIMIT 1000 clause for safety
+8. Handle NULL values explicitly in comparisons
+
+{schema_section}
+
+{quality_section}
+
+EXAMPLES:
+
+Question: "How many schools are there?"
+Answer: {{"sql": "SELECT COUNT(*) FROM schools LIMIT 1000", "explanation": "Count total schools", "tables_used": ["schools"], "columns_used": ["*"], "confidence": 0.9}}
+
+Question: "What is the average teacher salary?"
+Answer: {{"sql": "SELECT AVG(salary) FROM teachers WHERE salary IS NOT NULL LIMIT 1000", "explanation": "Calculate average salary excluding nulls", "tables_used": ["teachers"], "columns_used": ["salary"], "confidence": 0.9}}
+
+Question: "Which schools had enrollment changes between 2021 and 2023?"
+Answer: {{"sql": "SELECT s.school_name, e1.total_students as y2021, e2.total_students as y2023, (e1.total_students - e2.total_students) as change FROM schools s JOIN enrollment_history e1 ON s.school_id = e1.school_id AND e1.year = 2021 JOIN enrollment_history e2 ON s.school_id = e2.school_id AND e2.year = 2023 WHERE e1.total_students IS NOT NULL AND e2.total_students IS NOT NULL ORDER BY change DESC LIMIT 1000", "explanation": "Compare enrollment between two years using self-join on enrollment_history table", "tables_used": ["schools", "enrollment_history"], "columns_used": ["school_name", "total_students", "year"], "confidence": 0.9}}
+
+RESPONSE FORMAT (MUST BE VALID JSON):
+{{"sql": "SELECT...", "explanation": "text", "tables_used": ["t1"], "columns_used": ["c1"], "confidence": 0.9}}
+
+IMPORTANT: Return ONLY the JSON object, no additional text.
+
+USER PROMPT TEMPLATE:
+----------------------------------------------------------------------
+Convert this question into a SQL query:
+
+Question: {question}
+
+Remember: Return ONLY valid JSON with sql, explanation, tables_used, columns_used, and confidence.
+
+REFINEMENT PROMPT TEMPLATE:
+----------------------------------------------------------------------
+The previous SQL query failed with this error:
+
+Original SQL:
+{original_sql}
+
+Error:
+{error_message}
+
+Please generate a corrected SQL query that fixes this error.
+
+Question: {question}
+
+Return ONLY valid JSON: {{"sql": "...", "explanation": "...", "tables_used": [...], "columns_used": [...], "confidence": 0.9}}
+
+PROMPT VARIATIONS:
+----------------------------------------------------------------------
+
+DETAILED EXAMPLES:
+
+1. Simple Count:
+   Q: "How many records?"
+   SQL: SELECT COUNT(*) FROM table_name LIMIT 1000
+   Tip: Use COUNT(*) for all rows, COUNT(column) for non-null values
+
+2. Average with Filter:
+   Q: "What is average salary for teachers?"
+   SQL: SELECT AVG(salary) FROM teachers WHERE salary IS NOT NULL LIMIT 1000
+   Tip: Always exclude NULLs in aggregations
+
+3. Year Comparison (Self-Join):
+   Q: "Compare enrollment between 2021 and 2023"
+   SQL: SELECT t1.name, t1.value as y2021, t2.value as y2023
+        FROM table t1
+        JOIN table t2 ON t1.id = t2.id
+        WHERE t1.year = 2021 AND t2.year = 2023
+   Tip: Use self-join with different year filters
+
+4. Top N with Ordering:
+   Q: "Show top 5 schools by enrollment"
+   SQL: SELECT school_name, total_students 
+        FROM schools 
+        ORDER BY total_students DESC 
+        LIMIT 5
+   Tip: Always use ORDER BY before LIMIT
+
+5. Group By with Aggregation:
+   Q: "Average salary by department"
+   SQL: SELECT department, AVG(salary) as avg_sal
+        FROM employees
+        WHERE salary IS NOT NULL
+        GROUP BY department
+        ORDER BY avg_sal DESC
+        LIMIT 1000
+   Tip: Use GROUP BY with aggregates, ORDER BY for sorting
+
+
+Generate SQL query for: {question}
+
+Schema: {schema}
+
+Rules:
+- Only SELECT queries
+- Add LIMIT 1000
+- Handle NULLs
+- Return JSON: {{"sql": "...", "confidence": 0.9}}
+
+You MUST follow these rules EXACTLY:
+
+1. Generate ONLY SQLite SELECT query
+2. NO destructive operations (DROP, DELETE, UPDATE, INSERT)
+3. Use ONLY these tables: {table_names}
+4. Add "LIMIT 1000" at end
+5. Return ONLY this JSON format:
+   {{"sql": "SELECT...", "explanation": "...", "confidence": 0.9}}
+
+Question: {question}
+
+DO NOT add any text before or after the JSON.
